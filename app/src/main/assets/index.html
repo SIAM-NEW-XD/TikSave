@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikSave — TikTok Video Downloader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Hind+Siliguri:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #07030f;
+    --s1: #0f0820;
+    --s2: #160d2a;
+    --acc: #a855f7;
+    --acc2: #ec4899;
+    --teal: #22d3ee;
+    --gold: #fbbf24;
+    --text: #f0e8ff;
+    --muted: #6b5a8a;
+    --border: rgba(168,85,247,0.12);
+    --border2: rgba(255,255,255,0.05);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Animated mesh background */
+body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(168,85,247,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(236,72,153,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(34,211,238,0.05) 0%, transparent 60%),
+        linear-gradient(160deg, #09041a 0%, #07030f 50%, #0a0318 100%);
+}
+body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(168,85,247,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168,85,247,0.03) 1px, transparent 1px);
+    background-size: 52px 52px;
+}
+
+/* floating orbs */
+.blobs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.blob {
+    position: absolute; border-radius: 50%; filter: blur(100px);
+    animation: drift 16s ease-in-out infinite alternate;
+}
+.blob-1 { width:500px;height:500px; background:rgba(168,85,247,0.18); top:-150px;right:-100px; }
+.blob-2 { width:400px;height:400px; background:rgba(236,72,153,0.12); bottom:-100px;left:-80px; animation-delay:-8s; }
+.blob-3 { width:280px;height:280px; background:rgba(34,211,238,0.08); top:45%;left:45%; animation-delay:-4s; }
+@keyframes drift {
+    from { transform:translate(0,0) scale(1); }
+    to   { transform:translate(30px,20px) scale(1.08); }
+}
+
+.page {
+    position: relative; z-index: 1;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+}
+
+/* nav */
+nav {
+    width:100%; max-width:900px; padding:22px 24px;
+    display:flex; justify-content:space-between; align-items:center;
+}
+.brand {
+    display:flex; align-items:center; gap:10px;
+    font-weight:700; font-size:19px; letter-spacing:-0.03em;
+    text-decoration:none; color:var(--text);
+}
+.brand-icon {
+    width:36px;height:36px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px;
+    box-shadow: 0 0 20px rgba(168,85,247,0.4);
+}
+.brand em { color:var(--acc); font-style:normal; }
+.badge {
+    font-size:10px; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
+    background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.25);
+    color:var(--acc); padding:4px 12px; border-radius:100px;
+}
+
+/* hero */
+.hero {
+    width:100%; max-width:680px; padding:44px 24px 0;
+    text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+.hero-pill {
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:'Hind Siliguri',sans-serif; font-size:12px; color:var(--muted);
+    border:1px solid var(--border); border-radius:100px; padding:5px 16px;
+    background: rgba(168,85,247,0.05);
+    animation:up .6s ease both;
+}
+.pulse { width:6px;height:6px;background:var(--acc);border-radius:50%; animation:pulse 2s ease infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.7)} }
+
+h1 {
+    font-size:clamp(2.6rem,8vw,4.2rem); font-weight:700;
+    line-height:1.04; letter-spacing:-0.04em;
+    animation:up .6s .1s ease both;
+}
+.grad-text {
+    background:linear-gradient(90deg, var(--acc) 0%, var(--acc2) 50%, var(--teal) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+
+.hero-sub {
+    font-family:'Hind Siliguri',sans-serif; color:var(--muted);
+    font-size:15px; line-height:1.75; max-width:460px;
+    animation:up .6s .2s ease both;
+}
+@keyframes up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+/* card */
+.card {
+    width:100%; max-width:640px; margin:32px 24px 0;
+    background: linear-gradient(145deg, rgba(15,8,32,0.95), rgba(22,13,42,0.9));
+    border:1px solid var(--border); border-radius:22px; padding:26px;
+    box-shadow:0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(168,85,247,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+    animation:up .6s .3s ease both;
+}
+
+.input-row {
+    display:flex; gap:8px;
+    background:var(--s2); border:1.5px solid rgba(168,85,247,0.15); border-radius:13px; padding:5px;
+    transition:border-color .2s, box-shadow .2s;
+}
+.input-row:focus-within {
+    border-color:rgba(168,85,247,.5);
+    box-shadow:0 0 0 3px rgba(168,85,247,.08), 0 0 20px rgba(168,85,247,.1);
+}
+
+#url-input {
+    flex:1; background:none; border:none; outline:none;
+    color:var(--text); font-family:'Hind Siliguri',sans-serif; font-size:14px; padding:10px 14px;
+}
+#url-input::placeholder { color:var(--muted); }
+
+#go-btn {
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    border:none; border-radius:10px; color:#fff;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13px; letter-spacing:.03em;
+    padding:10px 22px; cursor:pointer; white-space:nowrap;
+    transition:opacity .18s, transform .1s, box-shadow .18s;
+    box-shadow:0 4px 20px rgba(168,85,247,.4);
+}
+#go-btn:hover { opacity:.88; box-shadow:0 6px 28px rgba(168,85,247,.55); }
+#go-btn:active { transform:scale(.96); }
+#go-btn:disabled { opacity:.32; cursor:not-allowed; transform:none; box-shadow:none; }
+
+.hint {
+    font-family:'Hind Siliguri',sans-serif; font-size:12px; color:var(--muted);
+    display:flex; align-items:center; justify-content:center; gap:6px; margin-top:11px;
+}
+
+/* ===== VIP LOADING SYSTEM ===== */
+#state-loading { display:none; flex-direction:column; align-items:center; gap:0; padding:30px 0 10px; }
+
+.vip-loader {
+    width:100%; display:flex; flex-direction:column; align-items:center; gap:16px;
+}
+
+/* Spinner ring */
+.vip-ring {
+    position:relative; width:72px; height:72px;
+}
+.vip-ring svg { position:absolute; top:0; left:0; }
+.ring-bg { animation:none; }
+.ring-spin {
+    animation:spin .9s linear infinite;
+    transform-origin:center;
+}
+.ring-spin2 {
+    animation:spin2 1.4s linear infinite;
+    transform-origin:center;
+}
+@keyframes spin  { to{transform:rotate(360deg)} }
+@keyframes spin2 { to{transform:rotate(-360deg)} }
+
+.vip-ring-icon {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:22px; animation: iconPulse 1.5s ease infinite;
+}
+@keyframes iconPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+
+/* Steps */
+.vip-steps {
+    display:flex; flex-direction:column; gap:8px; width:100%; max-width:300px;
+    margin-top:4px;
+}
+.vip-step {
+    display:flex; align-items:center; gap:10px;
+    font-family:'Hind Siliguri',sans-serif; font-size:13px; color:var(--muted);
+    padding:8px 14px; border-radius:10px; border:1px solid transparent;
+    transition:all .4s ease;
+}
+.vip-step.active {
+    color:var(--text); border-color:rgba(168,85,247,0.2);
+    background:rgba(168,85,247,0.07);
+}
+.vip-step.done {
+    color:#a3e635;
+}
+.vip-step-icon { font-size:15px; flex-shrink:0; }
+.vip-step-text { flex:1; }
+.vip-step-check { font-size:14px; }
+
+/* Progress bar */
+.vip-progress-wrap {
+    width:100%; max-width:300px;
+    background:rgba(255,255,255,0.04); border-radius:100px; height:4px;
+    overflow:hidden; position:relative;
+}
+.vip-progress-bar {
+    height:100%; border-radius:100px; width:0%;
+    background:linear-gradient(90deg, var(--acc), var(--acc2), var(--teal));
+    background-size:200% 100%;
+    animation:shimmer 1.5s linear infinite;
+    transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+@keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }
+
+.vip-pct {
+    font-size:11px; font-weight:700; color:var(--acc); letter-spacing:.08em;
+    font-family:'Space Grotesk',sans-serif;
+}
+
+/* result */
+#state-result {
+    display:none; flex-direction:column; gap:17px; margin-top:18px;
+    animation:up .4s cubic-bezier(.22,1,.36,1);
+}
+.divider { border:none; border-top:1px solid var(--border); }
+.vcard { display:flex; gap:13px; align-items:flex-start; }
+.thumb {
+    width:70px;height:70px; border-radius:11px; overflow:hidden; flex-shrink:0;
+    background:var(--s2); border:1px solid var(--border);
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.15);
+}
+.thumb img { width:100%;height:100%;object-fit:cover; }
+.vmeta { flex:1; min-width:0; }
+.vtitle {
+    font-weight:600; font-size:13px; line-height:1.45; margin-bottom:5px;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+}
+.vtags { display:flex;flex-wrap:wrap;gap:5px; }
+.vtag {
+    font-size:11px;font-weight:600;
+    background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;color:var(--muted);
+}
+
+/* download button */
+.dl-btn {
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    color:#fff; border:none; cursor:pointer; width:100%;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14px; letter-spacing:.02em;
+    padding:15px; border-radius:12px;
+    transition:opacity .18s, transform .1s, box-shadow .18s;
+    box-shadow:0 4px 24px rgba(168,85,247,.4);
+    position:relative; overflow:hidden;
+}
+.dl-btn::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);
+    transform:translateX(-100%);
+    transition:transform .5s ease;
+}
+.dl-btn:hover::before { transform:translateX(100%); }
+.dl-btn:hover { opacity:.9; box-shadow:0 6px 30px rgba(168,85,247,.55); }
+.dl-btn:active { transform:scale(.98); }
+.dl-btn:disabled { opacity:.38; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* download progress overlay */
+#dl-progress-wrap {
+    display:none; flex-direction:column; gap:10px; padding:14px;
+    background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.15);
+    border-radius:12px; margin-top:4px;
+}
+.dl-prog-header {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12px; font-weight:700;
+}
+.dl-prog-label { color:var(--acc); font-family:'Space Grotesk',sans-serif; letter-spacing:.05em; }
+.dl-prog-pct { color:var(--text); }
+.dl-prog-bar-wrap {
+    background:rgba(255,255,255,0.05); border-radius:100px; height:6px; overflow:hidden;
+}
+.dl-prog-bar {
+    height:100%; border-radius:100px; width:0%;
+    background:linear-gradient(90deg,var(--acc),var(--acc2),var(--teal));
+    background-size:200%;
+    animation:shimmer 1.5s linear infinite;
+    transition:width .3s ease;
+}
+.dl-prog-status {
+    font-family:'Hind Siliguri',sans-serif; font-size:12px; color:var(--muted);
+}
+
+/* error */
+#state-error {
+    display:none; margin-top:13px;
+    background:rgba(236,72,153,.07); border:1px solid rgba(236,72,153,.2);
+    border-radius:10px; padding:11px 15px;
+    font-family:'Hind Siliguri',sans-serif; font-size:13px; color:#f472b6;
+}
+
+/* pills */
+.pills {
+    display:flex;flex-wrap:wrap;gap:9px;justify-content:center;
+    margin:26px 24px 0; animation:up .6s .4s ease both;
+}
+.pill {
+    display:flex;align-items:center;gap:6px;
+    background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.15);border-radius:100px;
+    padding:6px 15px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;
+    transition:border-color .2s, color .2s;
+}
+.pill:hover { border-color:rgba(168,85,247,0.35); color:var(--acc); }
+
+/* steps */
+.steps { width:100%;max-width:640px;margin:50px 24px 0; animation:up .6s .5s ease both; }
+.steps-head { font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;text-align:center; }
+.steps-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:11px; }
+.step {
+    background:linear-gradient(145deg,rgba(15,8,32,0.8),rgba(22,13,42,0.6));
+    border:1px solid var(--border);border-radius:14px;padding:17px;
+    transition:border-color .2s, transform .2s, box-shadow .2s;
+}
+.step:hover { border-color:rgba(168,85,247,.3); transform:translateY(-2px); box-shadow:0 8px 30px rgba(168,85,247,.1); }
+.step-num { font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--acc);margin-bottom:7px; }
+.step-title { font-size:13px;font-weight:600;margin-bottom:3px; }
+.step-desc { font-family:'Hind Siliguri',sans-serif;font-size:12px;color:var(--muted);line-height:1.55; }
+
+footer {
+    margin-top:60px;padding:24px;
+    font-family:'Hind Siliguri',sans-serif;font-size:12px;color:var(--muted);text-align:center;
+    position:relative;z-index:1;
+}
+
+@media(max-width:480px){
+    .card{margin:20px 14px 0;padding:18px;}
+    #go-btn{padding:10px 14px;font-size:12px;}
+    h1{letter-spacing:-.03em;}
+}
+</style>
+</head>
+<body>
+<div class="blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+</div>
+<div class="page">
+
+<nav>
+    <a class="brand" href="#">
+        <div class="brand-icon">🎵</div>
+        Tik<em>Save</em>
+    </a>
+    <div class="badge">Free & Fast</div>
+</nav>
+
+<div class="hero">
+    <div class="hero-pill"><div class="pulse"></div>ওয়াটারমার্ক ছাড়া ডাউনলোড</div>
+    <h1>TikTok<br><span class="grad-text">Downloader</span></h1>
+    <p class="hero-sub">যেকোনো TikTok ভিডিওর লিংক দিন, সেকেন্ডের মধ্যে HD MP4 সরাসরি গ্যালারিতে সেভ হবে।</p>
+</div>
+
+<div class="card">
+    <div class="input-row">
+        <input type="text" id="url-input" placeholder="TikTok লিংক এখানে পেস্ট করুন…" autocomplete="off" spellcheck="false">
+        <button id="go-btn" onclick="fetchVideo()">খুঁজুন ↗</button>
+    </div>
+    <p class="hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        TikTok অ্যাপ → Share → Copy Link করুন
+    </p>
+
+    <!-- VIP LOADING -->
+    <div id="state-loading">
+        <div class="vip-loader">
+            <!-- Dual spinner -->
+            <div class="vip-ring">
+                <svg width="72" height="72" viewBox="0 0 72 72">
+                    <!-- bg ring -->
+                    <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(168,85,247,0.08)" stroke-width="3" class="ring-bg"/>
+                    <!-- outer spin -->
+                    <circle cx="36" cy="36" r="30" fill="none" stroke="url(#grad1)" stroke-width="3"
+                        stroke-dasharray="60 130" stroke-linecap="round" class="ring-spin"/>
+                    <!-- inner spin counter -->
+                    <circle cx="36" cy="36" r="21" fill="none" stroke="url(#grad2)" stroke-width="2.5"
+                        stroke-dasharray="40 95" stroke-linecap="round" class="ring-spin2"/>
+                    <defs>
+                        <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#a855f7"/>
+                            <stop offset="100%" stop-color="#ec4899"/>
+                        </linearGradient>
+                        <linearGradient id="grad2" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#22d3ee"/>
+                            <stop offset="100%" stop-color="#a855f7"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="vip-ring-icon">🔍</div>
+            </div>
+
+            <!-- Step indicators -->
+            <div class="vip-steps">
+                <div class="vip-step" id="vstep-1">
+                    <span class="vip-step-icon">🌐</span>
+                    <span class="vip-step-text">সার্ভারে কানেক্ট হচ্ছে…</span>
+                    <span class="vip-step-check" id="vcheck-1"></span>
+                </div>
+                <div class="vip-step" id="vstep-2">
+                    <span class="vip-step-icon">📡</span>
+                    <span class="vip-step-text">ভিডিও তথ্য নিচ্ছে…</span>
+                    <span class="vip-step-check" id="vcheck-2"></span>
+                </div>
+                <div class="vip-step" id="vstep-3">
+                    <span class="vip-step-icon">⚡</span>
+                    <span class="vip-step-text">HD লিংক প্রস্তুত হচ্ছে…</span>
+                    <span class="vip-step-check" id="vcheck-3"></span>
+                </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="vip-progress-wrap">
+                <div class="vip-progress-bar" id="vip-bar"></div>
+            </div>
+            <div class="vip-pct" id="vip-pct">0%</div>
+        </div>
+    </div>
+
+    <div id="state-result">
+        <hr class="divider">
+        <div class="vcard">
+            <div class="thumb"><img id="r-thumb" src="" alt=""></div>
+            <div class="vmeta">
+                <div class="vtitle" id="r-title"></div>
+                <div class="vtags" id="r-tags"></div>
+            </div>
+        </div>
+
+        <!-- Download progress bar -->
+        <div id="dl-progress-wrap">
+            <div class="dl-prog-header">
+                <span class="dl-prog-label">⬇ DOWNLOADING</span>
+                <span class="dl-prog-pct" id="dl-pct-text">0%</span>
+            </div>
+            <div class="dl-prog-bar-wrap">
+                <div class="dl-prog-bar" id="dl-prog-bar"></div>
+            </div>
+            <div class="dl-prog-status" id="dl-prog-status">ফাইল ডাউনলোড হচ্ছে…</div>
+        </div>
+
+        <button class="dl-btn" id="dl-btn" onclick="doDownload()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span id="dl-text">গ্যালারিতে সেভ করুন (MP4)</span>
+        </button>
+    </div>
+
+    <div id="state-error"></div>
+</div>
+
+<div class="pills">
+    <div class="pill">🚫 Watermark নেই</div>
+    <div class="pill">⚡ ইনস্ট্যান্ট</div>
+    <div class="pill">🆓 সম্পূর্ণ ফ্রি</div>
+    <div class="pill">📱 গ্যালারি সেভ</div>
+    <div class="pill">🔒 নিরাপদ</div>
+</div>
+
+<div class="steps">
+    <p class="steps-head">কীভাবে ব্যবহার করবেন</p>
+    <div class="steps-grid">
+        <div class="step">
+            <div class="step-num">STEP 01</div>
+            <div class="step-title">লিংক কপি করুন</div>
+            <div class="step-desc">TikTok অ্যাপে Share → Copy Link চাপুন</div>
+        </div>
+        <div class="step">
+            <div class="step-num">STEP 02</div>
+            <div class="step-title">পেস্ট করুন</div>
+            <div class="step-desc">উপরের বক্সে লিংকটি পেস্ট করুন</div>
+        </div>
+        <div class="step">
+            <div class="step-num">STEP 03</div>
+            <div class="step-title">ডাউনলোড করুন</div>
+            <div class="step-desc">বাটন চাপুন, গ্যালারিতে সেভ হবে</div>
+        </div>
+    </div>
+</div>
+
+<footer>© 2025 TikSave · শুধুমাত্র ব্যক্তিগত ব্যবহারের জন্য</footer>
+</div>
+
+<script>
+const API = 'https://www.tikwm.com/api/';
+let vidId = '', vidTitle = 'tiktok_video', vidUrl = '';
+
+function cleanUrl(raw) {
+    const m = raw.match(/https?:\/\/[^\s]+tiktok[^\s]*/i);
+    if (!m) return raw.trim();
+    return m[0].split(/\s/)[0].replace(/[.,;)]+$/, '');
+}
+function mkTag(t) {
+    const e = document.createElement('div'); e.className = 'vtag'; e.textContent = t; return e;
+}
+function fmt(n) {
+    if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+    return n;
+}
+function showErr(msg) {
+    const e = document.getElementById('state-error');
+    e.textContent = '⚠️ ' + msg; e.style.display = 'block';
+}
+function hideErr() { document.getElementById('state-error').style.display = 'none'; }
+
+/* ===== VIP LOADING STEPS ===== */
+let vipTimer = null;
+
+function vipStepActive(n) {
+    for (let i = 1; i <= 3; i++) {
+        const s = document.getElementById('vstep-'+i);
+        s.classList.remove('active', 'done');
+        if (i < n) { s.classList.add('done'); document.getElementById('vcheck-'+i).textContent = '✅'; }
+        else if (i === n) { s.classList.add('active'); document.getElementById('vcheck-'+i).textContent = ''; }
+        else { document.getElementById('vcheck-'+i).textContent = ''; }
+    }
+}
+
+function vipSetProgress(pct) {
+    document.getElementById('vip-bar').style.width = pct + '%';
+    document.getElementById('vip-pct').textContent = pct + '%';
+}
+
+function vipStart() {
+    vipStepActive(1); vipSetProgress(5);
+    let p = 5;
+    const steps = [
+        { delay: 600,  step: 2, pct: 35 },
+        { delay: 1300, step: 3, pct: 75 },
+    ];
+    steps.forEach(s => {
+        setTimeout(() => { vipStepActive(s.step); vipSetProgress(s.pct); }, s.delay);
+    });
+    // smooth fill to 90 while waiting
+    vipTimer = setInterval(() => {
+        p = Math.min(90, p + 1);
+        if (p > 75) vipSetProgress(p);
+    }, 120);
+}
+
+function vipDone() {
+    clearInterval(vipTimer);
+    vipStepActive(4); // all done
+    for (let i = 1; i <= 3; i++) {
+        document.getElementById('vstep-'+i).classList.add('done');
+        document.getElementById('vcheck-'+i).textContent = '✅';
+    }
+    vipSetProgress(100);
+}
+
+/* ===== FETCH ===== */
+async function fetchVideo() {
+    const raw = document.getElementById('url-input').value.trim();
+    if (!raw) { showErr('একটি TikTok লিংক দিন!'); return; }
+    const url = cleanUrl(raw);
+    hideErr();
+    document.getElementById('state-result').style.display = 'none';
+    document.getElementById('dl-progress-wrap').style.display = 'none';
+    document.getElementById('state-loading').style.display = 'flex';
+    document.getElementById('go-btn').disabled = true;
+    vipStart();
+
+    try {
+        const res  = await fetch(API + '?url=' + encodeURIComponent(url) + '&hd=1');
+        const json = await res.json();
+        if (json.code !== 0 || !json.data) throw new Error(json.msg || 'ভিডিও পাওয়া যায়নি');
+
+        const d = json.data;
+        vidId    = d.id || '';
+        vidTitle = (d.title || 'tiktok_video').replace(/[^\w\s-]/g,'').trim().slice(0,60) || 'tiktok_video';
+        vidUrl   = d.hdplay || d.play || '';
+
+        document.getElementById('r-thumb').src = d.cover || d.origin_cover || '';
+        document.getElementById('r-title').textContent = d.title || 'TikTok Video';
+
+        const tags = document.getElementById('r-tags'); tags.innerHTML = '';
+        if (d.author?.nickname) tags.appendChild(mkTag('@' + d.author.nickname));
+        if (d.play_count) tags.appendChild(mkTag('👁 ' + fmt(d.play_count)));
+        if (d.digg_count) tags.appendChild(mkTag('❤️ ' + fmt(d.digg_count)));
+        if (d.duration)   tags.appendChild(mkTag('⏱ ' + d.duration + 's'));
+
+        vipDone();
+        setTimeout(() => {
+            document.getElementById('state-loading').style.display = 'none';
+            document.getElementById('state-result').style.display = 'flex';
+            setBtn('ready');
+        }, 500);
+
+    } catch(e) {
+        clearInterval(vipTimer);
+        document.getElementById('state-loading').style.display = 'none';
+        showErr(e.message);
+    } finally {
+        document.getElementById('go-btn').disabled = false;
+    }
+}
+
+/* ===== BLOB DOWNLOAD (storage permission + progress) ===== */
+async function doDownload() {
+    if (!vidId) return;
+    const dlUrl = 'https://www.tikwm.com/video/media/play/' + vidId + '.mp4';
+
+    setBtn('loading');
+    const wrap  = document.getElementById('dl-progress-wrap');
+    const bar   = document.getElementById('dl-prog-bar');
+    const pctTxt = document.getElementById('dl-pct-text');
+    const status = document.getElementById('dl-prog-status');
+    wrap.style.display = 'flex';
+
+    try {
+        // Fetch with progress tracking
+        const response = await fetch(dlUrl);
+        if (!response.ok) throw new Error('সার্ভার থেকে ভিডিও আনতে পারেনি');
+
+        const contentLength = response.headers.get('content-length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        const reader = response.body.getReader();
+        const chunks = [];
+        let received = 0;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            received += value.length;
+
+            if (total > 0) {
+                const pct = Math.round((received / total) * 100);
+                bar.style.width = pct + '%';
+                pctTxt.textContent = pct + '%';
+                status.textContent = formatBytes(received) + ' / ' + formatBytes(total) + ' ডাউনলোড হয়েছে';
+            } else {
+                // Unknown size — animate fake progress
+                const fakePct = Math.min(90, Math.round((received / 5e6) * 90));
+                bar.style.width = fakePct + '%';
+                pctTxt.textContent = formatBytes(received);
+                status.textContent = formatBytes(received) + ' ডাউনলোড হয়েছে…';
+            }
+        }
+
+        bar.style.width = '100%'; pctTxt.textContent = '100%';
+        status.textContent = '✅ ডাউনলোড সম্পন্ন! সেভ হচ্ছে…';
+
+        // Combine chunks → Blob → Object URL → <a> click (triggers Save dialog / gallery)
+        const blob = new Blob(chunks, { type: 'video/mp4' });
+        const objUrl = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = objUrl;
+        a.download = vidTitle + '.mp4';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke after short delay
+        setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+
+        setBtn('done');
+        setTimeout(() => {
+            setBtn('ready');
+            wrap.style.display = 'none';
+        }, 4000);
+
+    } catch(err) {
+        // Fallback: direct link if blob fetch fails (CORS issue)
+        status.textContent = '⚠️ সরাসরি ডাউনলোড শুরু হচ্ছে…';
+        bar.style.width = '100%';
+
+        const a = document.createElement('a');
+        a.href = dlUrl;
+        a.download = vidTitle + '.mp4';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setBtn('done');
+        setTimeout(() => { setBtn('ready'); wrap.style.display = 'none'; }, 3500);
+    }
+}
+
+function formatBytes(b) {
+    if (b >= 1e6) return (b/1e6).toFixed(1) + ' MB';
+    if (b >= 1e3) return (b/1e3).toFixed(0) + ' KB';
+    return b + ' B';
+}
+
+function setBtn(s) {
+    const b = document.getElementById('dl-btn'), t = document.getElementById('dl-text');
+    if (s === 'loading') { b.disabled = true;  t.textContent = 'ডাউনলোড হচ্ছে…'; }
+    else if (s === 'done') { b.disabled = false; t.textContent = '✅ সেভ হয়েছে!'; }
+    else { b.disabled = false; t.textContent = 'গ্যালারিতে সেভ করুন (MP4)'; }
+}
+
+document.getElementById('url-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchVideo();
+});
+</script>
+</body>
+</html>
